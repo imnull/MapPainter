@@ -1,26 +1,16 @@
 (function(win){
-	function str(v){ return typeof(v) == 'string'; };
-	function fun(v){ return typeof(v) == 'function'; };
-	function num(v){ return typeof(v) == 'number'; };
-	function Num(v){ return num(v) && !isNaN(v); };
-	function numV(v, d){
-		return Num(v) ? v : numV(d, 0);
-	}
-	function E(arr, fn, start){
-		var i = numV(start), r = undefined;
-		while(i < arr.length){
-			if(r = fn(arr[i], i, arr) !== undefined) return r;
-			i++;
-		}
-		return r;
-	}
 
+	var U = win.GD.util;
 	function MapPainter(canvas){
-		this.canvas = str(canvas) ? document.querySelector(canvas) : canvas;
-		this.ctx = this.canvas.getContext('2d');
+		this.canvas = U.str(canvas) ? document.querySelector(canvas) : canvas;
 		this.adj = new Adjustor();
+		this.init();
 	};
 	MapPainter.prototype = {
+		init: function(){
+			this.ctx = this.canvas.getContext('2d');
+			return this;
+		},
 		fitCanvas: function(top, right, bottom, left){
 			this.adj.fitCanvas(this.canvas, top, right, bottom, left);
 			return this;
@@ -29,6 +19,9 @@
 			this.rect = drawMap(this.ctx, data, this.adj);
 			return this;
 		},
+		drawPoint: function(p, color, size){
+			GD.drawPoint(this.ctx, p, color, size);
+		},
 		getLonlatCoord: function(lon, lat){
 			return this.rect ? this.adj.recoordPoint(geo.lonlat2mercator(lon, lat), this.rect) : null;
 		},
@@ -36,19 +29,27 @@
 			return this.rect ? this.adj.recoordPoint(geo.Lonlat2Mercator(lonLat), this.rect) : null;
 		},
 		drawLonlat: function(lon, lat, callback, arg){
-			fun(callback) && callback(this.ctx, this.getLonlatCoord(lon, lat), arg);
+			U.fun(callback) && callback(this.ctx, this.getLonlatCoord(lon, lat), arg);
 		},
 		DrawLonlat: function(lonLat, callback, arg){
-			fun(callback) && callback(this.ctx, this.GetLonlatCoord(lonLat), arg);
+			U.fun(callback) && callback(this.ctx, this.GetLonlatCoord(lonLat), arg);
 		},
 		DrawLonlatLine: function(lls, callback, arg){
-			if(fun(callback)){
+			if(U.fun(callback)){
 				var path = [];
 				for(var i = 0; i < lls.length; i++){
 					path.push(this.GetLonlatCoord(lls[i]));
 				}
 				callback(this.ctx, path, arg);
 			}
+		},
+		drawText: function(text, p, color, font){
+			this.ctx.font = font;
+			this.ctx.fillStyle = color;
+			this.ctx.fillText(text, p.x, p.y);
+		},
+		clear: function(){
+			this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 		}
 	};
 	
@@ -105,8 +106,8 @@
 	};
 	function drawMap(ctx, data, adj){
 		var map = geoDatas(data), rect = adj.calRect(map.rect);
-		E(map.path, function(p){
-			E(p, function(o){
+		U.E(map.path, function(p){
+			U.E(p, function(o){
 				drawPath2(ctx, adj.recoord(o.coordinates, rect));
 			})
 		})
@@ -117,7 +118,7 @@
 	function drawPath2(ctx, p){
 		ctx.beginPath();
 		ctx.moveTo(p[0].x, p[0].y);
-		E(p, function(P){
+		U.E(p, function(P){
 			ctx.lineTo(P.x, P.y);
 		}, 1);
 		ctx.closePath();
@@ -125,7 +126,7 @@
 		ctx.lineJoin = 'bevel';
 		ctx.lineWidth = 1;
 		ctx.strokeStyle = '#000';
-		ctx.fillStyle = '#333';
+		ctx.fillStyle = '#1a1a1a';
 		ctx.stroke();
 		ctx.fill();
 	}
@@ -133,7 +134,7 @@
 	function drawPath(ctx, p){
 		ctx.beginPath();
 		ctx.moveTo(p[0].x, p[0].y);
-		E(p, function(P){
+		U.E(p, function(P){
 			ctx.lineTo(P.x, P.y);
 		}, 1);
 		ctx.closePath();
@@ -159,7 +160,7 @@
 	}
 	function geoData1(lonLats){
 		var mercators = [], rect = new RectTester();
-		E(lonLats, function(ll){
+		U.E(lonLats, function(ll){
 			var lng = ll[0], lat = Math.max(-80, Math.min(80, ll[1]));
 			var m = geo.lonlat2mercator(lng, lat);
 			rect.test(m.x, m.y);
@@ -173,20 +174,20 @@
 		return result;
 	}
 	function getPolygon(coord, outPath, outerRect){
-		E(coord, function(c){
+		U.E(coord, function(c){
 			var d = geoData1(c);
 			outerRect.testRect(d.rect);
 			outPath.push(d);
 		});
 	}
 	function getMultiPolygon(coords, outPath, outerRect){
-		E(coords, function(coord){
+		U.E(coords, function(coord){
 			getPolygon(coord, outPath, outerRect);
 		})
 	}
 	function geoDatas(features){
 		var result = [], rect = new RectTester();
-		E(features, function(f){
+		U.E(features, function(f){
 			var path = [];
 			switch(f.geometry.type){
 				case 'Polygon':
@@ -262,4 +263,5 @@
 	};
 
 	win.MapPainter = MapPainter;
+
 })(window);

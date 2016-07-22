@@ -6,31 +6,66 @@
 		ID: 0,
 		team: {},
 		baseTeam: {},
-		add: function(callback, dur, onend){
-			return this.Add(callback, { startTime: Date.now(), duration: dur || 1000 }, onend);
+		add: function(callback, dur, onend, delay, sleep){
+			return this.Add(callback, { startTime: Date.now(), duration: dur || 1000 }, onend, delay, sleep);
 		},
-		Add: function(callback, arg, onend){
-			this.team['r' + ++this.ID] = [callback, arg, typeof(onend)=='function'?onend:B];
+		_Add: function(id, callback, arg, onend, delay, sleep){
+			this.team[id] = [callback
+				, arg	//参数
+				, typeof(onend)=='function'?onend:B	//onend
+				, 1	//自身状态
+				, delay || 0	//启动延迟
+				, 0	//计数
+				, sleep || 0	//执行间隔
+				];
 			return {
 				restart: function(dur){
 					arg.startTime = Date.now();
 					arg.duration = dur || arg.duration;
-					GLOBAL.Add(callback, arg, onend);
+					GLOBAL._Add(id, callback, arg, onend, delay, sleep).id;
 					Run();
+				},
+				pause: function(){
+					GLOBAL.team[id][3] = 0;
+				},
+				start: function(){
+					GLOBAL.team[id][3] = 1;
+				},
+				remove: function(){
+					if(id in GLOBAL.team){
+						GLOBAL.team[id][3] = -1;
+					}
 				}
 			}
 		},
-		addBase: function(callback, dur, onend){
-			return this.AddBase(callback, { startTime: Date.now(), duration: dur || 1000 }, onend);
+		Add: function(callback, arg, onend, delay, sleep){
+			return this._Add('r' + ++this.ID, callback, arg, onend, delay, sleep);
 		},
-		AddBase: function(callback, arg, onend){
-			this.baseTeam['r' + ++this.ID] = [callback, arg, typeof(onend)=='function'?onend:B];
+		addBase: function(callback, dur, onend, delay, sleep){
+			return this.AddBase(callback, { startTime: Date.now(), duration: dur || 1000 }, onend, delay, sleep);
+		},
+		AddBase: function(callback, arg, onend, delay, sleep){
+			var id = 'r' + ++this.ID;
+			this.baseTeam[id] = [callback
+				, arg
+				, typeof(onend)=='function'?onend:B
+				, 1
+				, delay || 0
+				, 0
+				, sleep || 0
+				];	
 			return {
 				restart: function(dur){
 					arg.startTime = Date.now();
 					arg.duration = dur || arg.duration;
-					GLOBAL.AddBase(callback, arg, onend);
+					GLOBAL.AddBase(callback, arg, onend, delay, sleep);
 					Run();
+				},
+				pause: function(){
+					GLOBAL.baseTeam[id][3] = 0;
+				},
+				start: function(){
+					GLOBAL.baseTeam[id][3] = 1;
 				}
 			}
 		},
@@ -41,6 +76,22 @@
 			for(var p in this.team){
 				fn(this.team[p][0], this.team[p][1], this.team[p][2], p, 0);
 			}
+		},
+		getState: function(key){
+			return (this.baseTeam[key] || this.team[key])[3];
+		},
+		getSleep: function(key){
+			return (this.baseTeam[key] || this.team[key])[6];
+		},
+		getDelay: function(key){
+			// return (this.baseTeam[key] || this.team[key])[4];
+			return GLOBAL.getCounter(key) > 0 ? this.getSleep(key) : (this.baseTeam[key] || this.team[key])[4];
+		},
+		getCounter: function(key){
+			return (this.baseTeam[key] || this.team[key])[5];
+		},
+		setCounter: function(key){
+			return (this.baseTeam[key] || this.team[key])[5] += 1;
 		},
 		isEmpty: function(){
 			for(var p in this.team){
@@ -77,26 +128,39 @@
 		}
 		
 		var now = Date.now(), dur = now - GLOBAL.startTime, interval = now - GLOBAL.previousTime;
-		var keys = [], c = 0, r, d;
+		var keys = [], c = 0, r, d, delay;
 		GLOBAL.each(function(fn, arg, onend, key){
 			c++;
-			d = (now - arg.startTime);
-			r = fn(Math.min(d, arg.duration), interval);
+			switch(GLOBAL.getState(key)){
+				case 0:
+					return;
+				case -1:
+					keys.push(key);
+					return;
+			}
+			delay = GLOBAL.getDelay(key);
+			d = (now - arg.startTime - delay);
+			if(d < 0){
+				return;
+			}
+			r = fn(Math.min(d, arg.duration), arg.duration, interval);
 
 			var stop = false;
 			if(r === 0){
 				stop = true;
 			} else if(r === -1){
 				stop = false;
-				if(d > arg.duration){
+				if(d >= arg.duration){
 					arg.startTime = now;
+					GLOBAL.setCounter(key);
 				}
 			} else if(d >= arg.duration){
 				stop = true;
+				GLOBAL.setCounter(key);
 			}
 
 			if(stop){
-				keys.push(key)
+				keys.push(key);
 			}
 
 		});
@@ -129,13 +193,13 @@
 	}
 
 	win.Ani = {
-		add: function(fn, dur, onend){
-			var a = GLOBAL.add(fn, dur, onend);
+		add: function(fn, dur, onend, delay, sleep){
+			var a = GLOBAL.add(fn, dur, onend, delay, sleep);
 			Run();
 			return a;
 		},
-		addBase: function(fn, dur, onend){
-			var a = GLOBAL.addBase(fn, dur, onend);
+		addBase: function(fn, dur, onend, delay, sleep){
+			var a = GLOBAL.addBase(fn, dur, onend, delay, sleep);
 			Run();
 			return a;
 		},

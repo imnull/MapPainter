@@ -1,5 +1,21 @@
 (function(win){
 
+function str(v){ return typeof(v) == 'string'; };
+function fun(v){ return typeof(v) == 'function'; };
+function num(v){ return typeof(v) == 'number'; };
+function Num(v){ return num(v) && !isNaN(v); };
+function numV(v, d){
+	return Num(v) ? v : numV(d, 0);
+}
+function E(arr, fn, start){
+	var i = numV(start), r = undefined;
+	while(i < arr.length){
+		if(r = fn(arr[i], i, arr) !== undefined) return r;
+		i++;
+	}
+	return r;
+}
+
 //point: { x, y }
 
 function getCenterPoint(p0, p1){
@@ -53,14 +69,14 @@ function fill(ctx, color){
 }
 
 
-function drawLine(ctx, points, color, width){
-	ctx.beginPath();
-	ctx.moveTo(points[0].x, points[0].y);
-	for(var i = 1; i < points.length; i++){
-		ctx.lineTo(points[i].x, points[i].y);
-	}
-	stroke(ctx, color, width);
-}
+// function drawLine(ctx, points, color, width){
+// 	ctx.beginPath();
+// 	ctx.moveTo(points[0].x, points[0].y);
+// 	for(var i = 1; i < points.length; i++){
+// 		ctx.lineTo(points[i].x, points[i].y);
+// 	}
+// 	stroke(ctx, color, width);
+// }
 
 function distance(p0, p1){
 	var x = p1.x - p0.x;
@@ -100,23 +116,49 @@ function linePoint(p0, p1, t){
 	return p;
 }
 
-function drawLinePoint(ctx, p0, p1, t, color, radio){
-	var p = linePoint(p0, p1, t);
+function drawPoint(ctx, p, color, size){
 	ctx.beginPath();
 	ctx.moveTo(p.x, p.y);
-	ctx.lineTo(p.x + .001, p.y + .001);
+	ctx.lineTo(p.x + 0.0001, p.y);
 	ctx.lineCap = 'round';
-	ctx.lineWidth = 2 * (radio || 1);
-	ctx.strokeStyle = color || '#fff';
-	ctx.stroke();
+	stroke(ctx, color, size);
+}
+
+function drawPoints(ctx, arr, color, radio){
+	radio = radio || 5;
+	color = color || '#fff';
+	MT.EACH(arr, function(a){
+		drawPoint(ctx, a, color, radio);
+	});
+}
+function drawLinePoint(ctx, p0, p1, t, color, size){
+	drawPoint(ctx, linePoint(p0, p1, t), color, size);
 }
 
 function drawLine(ctx, p0, p1, t, color, width, noDrawNow){
-	p1 = linePoint(p0, p1, t);
-	if(!noDrawNow) ctx.beginPath();
-	ctx.moveTo(p0.x, p0.y);
-	ctx.lineTo(p1.x, p1.y);
-	if(!noDrawNow) stroke(ctx, color, width);
+	t = Math.max(-1, Math.min(1, t));
+	if(t < 0){
+		drawLine(ctx, p1, p0, 1 + t, color, width, noDrawNow)
+	} else {
+		p1 = linePoint(p0, p1, t);
+		if(!noDrawNow) ctx.beginPath();
+		ctx.moveTo(p0.x, p0.y);
+		ctx.lineTo(p1.x, p1.y);
+		if(!noDrawNow) stroke(ctx, color, width);
+	}
+	
+}
+
+function getAngle(p0, p1){
+	return Math.atan2(p1.y - p0.y, p1.x - p0.x);
+}
+
+function rotatePoint(p, len, angle){
+	if(!len) return p;
+	return {
+		x: len * Math.cos(angle) + p.x,
+		y: len * Math.sin(angle) + p.y
+	}
 }
 
 function originA(p0, p1, angle){
@@ -255,27 +297,13 @@ function fullFitDom(el){
 }
 
 
-function drawPoint(ctx, p, color, radio){
-	ctx.beginPath();
-	ctx.arc(p.x, p.y, radio || 5, 0, Math.PI * 2);
-	ctx.fillStyle = color || '#fff';
-	ctx.fill();
-}
 
-function drawPoints(ctx, arr, color, radio){
-	radio = radio || 5;
-	color = color || '#fff';
-	MT.EACH(arr, function(a){
-		drawPoint(ctx, a, color, radio);
-	});
-}
 
 win.GD = {
 	FIT_SCALE: 1,
 	stroke: stroke,
 	fill: fill,
 	distance: distance,
-	drawLine: drawLine,
 	circlePoint: circlePoint,
 	circlePath: circlePath,
 	originA30: originA30,
@@ -296,7 +324,15 @@ win.GD = {
 	CirclePointA: CirclePointA,
 	linePoint: linePoint,
 	drawLine: drawLine,
-	drawLinePoint: drawLinePoint
+	drawLinePoint: drawLinePoint,
+	util: {
+		num: num,
+		numV: numV,
+		Num: Num,
+		fun: fun,
+		str: str,
+		E: E
+	}
 };
 
 
