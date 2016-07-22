@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>墨卡托算法测试</title>
+<script type="text/javascript" src="../jquery/jquery-2.0.0.min.js"></script>
+<script type="text/javascript" src="../js/geo.js"></script>
+<script type="text/javascript" src="../js/map-painter.js"></script>
+<script type="text/javascript" src="../js/ani.js"></script>
+<script type="text/javascript" src="../js/gd.js"></script>
+<style type="text/css">
+body{
+	background-color: #000;
+}
+canvas{
+	/*background-color: rgba(0,0,0,0.5);*/
+	position: absolute;
+	left: -1100px;
+	/*top: -80px;*/
+	top: -500px;
+}
+#cvs3{
+	opacity: 0.2;
+}
+#canvas-container{
+	position: absolute;
+	left: 10px;
+	top: 10px;
+	width: 1200px;
+	height: 700px;
+	overflow: hidden;
+	border: 1px solid #fff;
+}
+</style>
+</head>
+<body>
+
+<div id="canvas-container">
+	<canvas id="cvs1" width="3000" height="2000"></canvas>
+	<canvas id="cvs3" width="3000" height="2000"></canvas>
+	<canvas id="cvs2" width="3000" height="2000"></canvas>
+</div>
+
+<script type="text/javascript">
+
+var cities = {
+	"BEIJING": { lng: 116.3, lat: 39.9 }
+};
+
+function drawPoint(ctx, p, arg){
+	ctx.beginPath();
+	ctx.arc(p.x, p.y, arg.radio, 0, Math.PI * 2);
+	ctx.fillStyle = arg.color;
+	ctx.fill();
+}
+function drawLines(ctx, path, arg, t){
+	t = typeof(t) == 'number' ? t : 1;
+	var i = 0;
+	ctx.beginPath();
+	ctx.moveTo(path[0].x, path[0].y);
+	for(var i = 1; i < path.length; i++){
+		ctx.lineTo(path[i].x, path[i].y);
+	}
+	ctx.lineWidth = arg.radio;
+	ctx.strokeStyle = arg.color;
+	ctx.stroke();
+}
+
+
+$.getJSON('../data/worldmap/world_605kb.json', function(data){
+// $.getJSON('../data/china_provinces/china.json', function(data){
+	var painter = new MapPainter('#cvs1').fitCanvas(100, 100, 100, 200);
+	var f = data.features.filter(function(a, i){
+		return a.geometry;
+	});
+	painter.draw(f);
+});
+
+
+</script>
+
+</body>
+</html>
