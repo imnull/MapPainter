@@ -333,7 +333,12 @@ win.GD = {
 		Num: Num,
 		fun: fun,
 		str: str,
-		E: E
+		E: E,
+		e: function(o, fn){
+			for(var p in o){
+				if(fn(o[p], p, o)) return;
+			}
+		}
 	}
 };
 
