@@ -118,10 +118,12 @@ function linePoint(p0, p1, t){
 
 function drawPoint(ctx, p, color, size){
 	ctx.beginPath();
-	ctx.moveTo(p.x, p.y);
-	ctx.lineTo(p.x + 0.0001, p.y);
-	ctx.lineCap = 'round';
-	stroke(ctx, color, size);
+	// ctx.moveTo(p.x, p.y);
+	// ctx.lineTo(p.x + 0.0001, p.y);
+	// ctx.lineCap = 'round';
+	ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+	// stroke(ctx, color, size);
+	fill(ctx, color);
 }
 
 function drawPoints(ctx, arr, color, radio){
